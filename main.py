@@ -48,7 +48,7 @@ def get_directions(from_loc, to_loc):
         "key": MAPQUEST_API_KEY,
         "from": from_loc,
         "to": to_loc,
-        "routeType": "fastest"
+        "routeType": transport_mode_var.get()
     }
     response = requests.get(DIRECTIONS_URL, params=params)
     data = response.json()
@@ -103,6 +103,13 @@ root.geometry(f"{screen_width}x{screen_height}")
 # Create frames for layout
 top_frame = tk.Frame(root)
 top_frame.pack(fill=tk.X, padx=10, pady=10)
+
+# Transport mode selection
+tk.Label(top_frame, text="Transport Mode:").grid(row=1, column=0, padx=10, pady=5, sticky="w")
+transport_mode_var = tk.StringVar()
+transport_mode_var.set("fastest")  # default value
+transport_mode_menu = tk.OptionMenu(top_frame, transport_mode_var, "fastest", "shortest", "pedestrian", "bicycle", "car")
+transport_mode_menu.grid(row=1, column=1, padx=10, pady=5, sticky="w")
 
 main_frame = tk.Frame(root)
 main_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
