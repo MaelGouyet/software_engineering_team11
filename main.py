@@ -1,90 +1,67 @@
 import requests
+import os
+from dotenv import load_dotenv
 import urllib.parse
 
-# Graphhopper API URLs
-route_url = "https://graphhopper.com/api/1/route?"
-key = "your_api_key"  # Remplace avec ta vraie clé API
+#get the key from .env file
+# Load environment variables from .env file
+load_dotenv()
+MAPQUEST_API_KEY = os.getenv("GRAPHOPPER_API_KEY")
 
-# Fonction de géocodage pour obtenir lat/lng à partir du lieu
-def geocoding(location, key):
-    geocode_url = "https://graphhopper.com/api/1/geocode?"
-    url = geocode_url + urllib.parse.urlencode({"q": location, "limit": "1", "key": key})
-    replydata = requests.get(url)
-    json_data = replydata.json()
-    json_status = replydata.status_code
-    if json_status == 200 and len(json_data["hits"]) != 0:
-        lat = json_data["hits"][0]["point"]["lat"]
-        lng = json_data["hits"][0]["point"]["lng"]
-        name = json_data["hits"][0]["name"]
-        value = json_data["hits"][0]["osm_value"]
-        country = json_data["hits"][0].get("country", "")
-        state = json_data["hits"][0].get("state", "")
-        new_loc = f"{name}, {state}, {country}" if state and country else name
-        print(f"Geocoding API URL for {new_loc} (Location Type: {value})\n{url}")
+GEOCODE_URL = "http://www.mapquestapi.com/geocoding/v1/address"
+DIRECTIONS_URL = "http://www.mapquestapi.com/directions/v2/route"
+
+def geocode_location(location):
+    params = {
+        "key": MAPQUEST_API_KEY,
+        "location": location
+    }
+    response = requests.get(GEOCODE_URL, params=params)
+    data = response.json()
+
+    if response.status_code == 200 and data["info"]["statuscode"] == 0:
+        latlng = data["results"][0]["locations"][0]["latLng"]
+        display_name = data["results"][0]["locations"][0]["street"] + ", " + data["results"][0]["locations"][0]["adminArea5"] + ", " + data["results"][0]["locations"][0]["adminArea3"]
+        print(f"Geocoding for {location}: {latlng}")
+        return latlng["lat"], latlng["lng"], display_name
     else:
-        lat = lng = "null"
-        new_loc = location
-        if json_status != 200:
-            print("Geocode API status:", json_status, "\nError message:", json_data.get("message", "Unknown"))
-    return json_status, lat, lng, new_loc
+        print("Error in geocoding:", data["info"]["messages"])
+        return None, None, location
+
+def get_directions(from_loc, to_loc):
+    params = {
+        "key": MAPQUEST_API_KEY,
+        "from": from_loc,
+        "to": to_loc,
+        "routeType": "fastest"
+    }
+    response = requests.get(DIRECTIONS_URL, params=params)
+    data = response.json()
+
+    if response.status_code == 200 and data["info"]["statuscode"] == 0:
+        print("=================================================")
+        print(f"Directions from {from_loc} to {to_loc}")
+        print("=================================================")
+        print(f"Distance: {data['route']['distance']} miles")
+        print(f"Duration: {data['route']['formattedTime']}")
+        print("=================================================")
+        for leg in data["route"]["legs"][0]["maneuvers"]:
+            print(f"{leg['narrative']} ({leg['distance']:.1f} miles)")
+        print("=================================================")
+    else:
+        print("Error retrieving route:", data["info"]["messages"])
 
 while True:
-    # Sélection du mode de transport
-    print("\n+++++++++++++++++++++++++++++++++++++++++++++")
-    print("Vehicle profiles available on Graphhopper:")
-    print("+++++++++++++++++++++++++++++++++++++++++++++")
-    print("car, bike, foot")
-    print("+++++++++++++++++++++++++++++++++++++++++++++")
-    profile = ["car", "bike", "foot"]
-    vehicle = input("Enter a vehicle profile from the list above: ")
-    if vehicle in ["quit", "q"]:
+    from_location = input("Starting Location: ")
+    if from_location.lower() in ["q", "quit"]:
         break
-    elif vehicle not in profile:
-        print("No valid vehicle profile was entered. Using the car profile.")
-        vehicle = "car"
 
-    # Saisie des lieux de départ et destination
-    loc1 = input("Starting Location: ")
-    if loc1 in ["quit", "q"]:
+    to_location = input("Destination: ")
+    if to_location.lower() in ["q", "quit"]:
         break
-    orig = geocoding(loc1, key)
 
-    loc2 = input("Destination: ")
-    if loc2 in ["quit", "q"]:
-        break
-    dest = geocoding(loc2, key)
+    lat1, lng1, from_name = geocode_location(from_location)
+    lat2, lng2, to_name = geocode_location(to_location)
 
-    print("=================================================")
-    if orig[0] == 200 and dest[0] == 200:
-        op = f"&point={orig[1]}%2C{orig[2]}"
-        dp = f"&point={dest[1]}%2C{dest[2]}"
-        # Construction de l'URL de routage
-        paths_url = route_url + urllib.parse.urlencode({"key": key, "vehicle": vehicle}) + op + dp
-
-        # Requête vers l'API de routage
-        paths_data = requests.get(paths_url).json()
-        paths_status = requests.get(paths_url).status_code
-        print("Routing API Status:", paths_status, "\nRouting API URL:\n", paths_url)
-        print("=================================================")
-        print(f"Directions from {orig[3]} to {dest[3]} by {vehicle}")
-        print("=================================================")
-        if paths_status == 200:
-            km = paths_data["paths"][0]["distance"] / 1000
-            miles = km / 1.61
-            total_ms = paths_data["paths"][0]["time"]
-            sec = int(total_ms / 1000 % 60)
-            min = int(total_ms / 1000 / 60 % 60)
-            hr = int(total_ms / 1000 / 60 / 60)
-            print("Distance Traveled: {:.1f} miles / {:.1f} km".format(miles, km))
-            print("Trip Duration: {:02d}:{:02d}:{:02d}".format(hr, min, sec))
-            print("=================================================")
-
-            # Affichage des étapes de la route
-            for each in paths_data["paths"][0]["instructions"]:
-                path = each["text"]
-                distance = each["distance"]
-                print("{} ( {:.1f} km / {:.1f} miles )".format(path, distance/1000, distance/1000/1.61))
-            print("=================================================")
-        else:
-            print("Error message:", paths_data.get("message", "No route available"))
-            print("*************************************************")
+    if lat1 and lat2:
+        get_directions(from_location, to_location)
