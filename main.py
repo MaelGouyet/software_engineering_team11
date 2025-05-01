@@ -6,7 +6,7 @@ import urllib.parse
 #get the key from .env file
 # Load environment variables from .env file
 load_dotenv()
-MAPQUEST_API_KEY = os.getenv("GRAPHOPPER_API_KEY")
+MAPQUEST_API_KEY = os.getenv("MAPQUEST_API_KEY")
 
 GEOCODE_URL = "http://www.mapquestapi.com/geocoding/v1/address"
 DIRECTIONS_URL = "http://www.mapquestapi.com/directions/v2/route"
