@@ -64,17 +64,86 @@ def get_directions(from_loc, to_loc):
             map_label.config(image=map_image_tk)
             map_label.image = map_image_tk
 
-        # Display textual directions
+        # Display textual directions in improved format
         result_text.delete(1.0, tk.END)
-        result_text.insert(tk.END, "=================================================\n")
-        result_text.insert(tk.END, f"Directions from {from_loc} to {to_loc}\n")
-        result_text.insert(tk.END, "=================================================\n")
-        result_text.insert(tk.END, f"Distance: {data['route']['distance']} miles\n")
-        result_text.insert(tk.END, f"Duration: {data['route']['formattedTime']}\n")
-        result_text.insert(tk.END, "=================================================\n")
-        for leg in data["route"]["legs"][0]["maneuvers"]:
-            result_text.insert(tk.END, f"{leg['narrative']} ({leg['distance']:.1f} miles)\n")
-        result_text.insert(tk.END, "=================================================\n")
+        
+        # Header with origin and destination
+        result_text.insert(tk.END, from_loc + "\n", "origin")
+        result_text.insert(tk.END, "to ", "to_text")
+        result_text.insert(tk.END, to_loc + "\n\n", "destination")
+        
+        # Time and distance summary
+        # Calculer les heures et minutes
+        total_minutes = int(data['route']['time'] / 60)
+        hours = total_minutes // 60
+        minutes = total_minutes % 60
+
+        # Afficher au format approprié selon la durée
+        if hours > 0:
+            result_text.insert(tk.END, f"{hours} h {minutes} min\n", "time")
+        else:
+            result_text.insert(tk.END, f"{minutes} min\n", "time")
+        
+        result_text.insert(tk.END, f"{data['route']['distance']:.1f} mi\n\n", "distance")
+        
+        # Cost info if available
+        if 'fuelUsed' in data['route']:
+            result_text.insert(tk.END, f"IRS reimbursement: ${data['route']['fuelUsed'] * 3.5:.2f}\n\n", "cost")
+        
+        # Déterminer la couleur des flèches en fonction du thème
+        arrow_color = "#FFFFFF" if is_dark_mode else "#000000"
+        
+        # Maneuvers with direction symbols
+        for i, leg in enumerate(data["route"]["legs"][0]["maneuvers"]):
+            # Choose appropriate direction symbol
+            direction = leg.get('directionName', '').lower()
+            narrative = leg.get('narrative', '').lower()
+            
+            # Enhanced direction detection logic with better and thicker icons
+            if "right" in narrative:
+                symbol = "➤"
+            elif "left" in narrative:
+                symbol = "⬅"
+            elif direction == "north":
+                symbol = "⬆"
+            elif direction == "northeast":
+                symbol = "⬈"
+            elif direction == "east":
+                symbol = "➡"
+            elif direction == "southeast":
+                symbol = "⬊"
+            elif direction == "south":
+                symbol = "⬇"
+            elif direction == "southwest":
+                symbol = "⬋"
+            elif direction == "west":
+                symbol = "⬅"
+            elif direction == "northwest":
+                symbol = "⬉"
+            elif "u-turn" in narrative:
+                symbol = "↺"
+            else:
+                symbol = "➡"
+            
+            # Insert direction with proper formatting
+            result_text.insert(tk.END, f"{symbol} ", "symbol")
+            result_text.insert(tk.END, f"{leg['narrative']}\n", "instruction")
+            
+            if i < len(data["route"]["legs"][0]["maneuvers"]) - 1:
+                result_text.insert(tk.END, f"Then {leg['distance']:.1f} mi\n\n", "distance_segment")
+        
+        # Configure text styles
+        result_text.tag_configure("origin", font=("Arial", 14, "bold"), foreground="#2E7D32")
+        result_text.tag_configure("to_text", font=("Arial", 12))
+        result_text.tag_configure("destination", font=("Arial", 14, "bold"))
+        result_text.tag_configure("time", font=("Arial", 18, "bold"))
+        result_text.tag_configure("distance", font=("Arial", 12))
+        result_text.tag_configure("cost", font=("Arial", 12), foreground="#555555")
+        # Utiliser la couleur déterminée en fonction du thème
+        result_text.tag_configure("symbol", font=("Arial", 28, "bold"), foreground=arrow_color)
+        result_text.tag_configure("instruction", font=("Arial", 12))
+        result_text.tag_configure("distance_segment", font=("Arial", 10), foreground="#666666")
+        
     else:
         messagebox.showerror("Error", f"Error retrieving route: {data['info']['messages']}")
 
@@ -118,6 +187,10 @@ def apply_theme(theme):
 
     # Text area
     result_text.config(bg=theme["text_bg"], fg=theme["text_fg"], insertbackground=theme["text_fg"])
+    
+    # Update direction arrow colors when theme changes
+    arrow_color = "#FFFFFF" if is_dark_mode else "#000000"
+    result_text.tag_configure("symbol", font=("Arial", 28, "bold"), foreground=arrow_color)
 
 def toggle_dark_mode():
     global is_dark_mode
@@ -172,9 +245,20 @@ main_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
 map_label = tk.Label(main_frame)
 map_label.grid(row=0, column=0, padx=10, pady=10, sticky="nsew")
 
-# Result display (textual directions)
-result_text = scrolledtext.ScrolledText(main_frame, wrap=tk.WORD)
-result_text.grid(row=0, column=1, padx=10, pady=10, sticky="nsew")
+# Result display (textual directions) - with border radius and padding
+result_frame = tk.Frame(main_frame, bd=1, relief=tk.SOLID, bg="#FFFFFF", highlightbackground="#D0D0D0", 
+                       highlightthickness=1)
+result_frame.grid(row=0, column=1, padx=10, pady=10, sticky="nsew")
+
+# Create rounded corners effect with a Canvas
+canvas = tk.Canvas(result_frame, bd=0, highlightthickness=0, bg="#FFFFFF")
+canvas.pack(fill=tk.BOTH, expand=True)
+
+# Add the text widget inside the frame with padding
+result_text = scrolledtext.ScrolledText(canvas, wrap=tk.WORD, font=("Arial", 11), 
+                                        bd=0, padx=15, pady=15,  # Add padding
+                                        highlightthickness=0)    # Remove default border
+result_text.pack(fill=tk.BOTH, expand=True, padx=8, pady=8)     # Add internal padding
 
 # Configure grid weights for resizing
 main_frame.columnconfigure(0, weight=1)  # Map column
