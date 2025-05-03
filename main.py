@@ -207,7 +207,6 @@ def find_nearby_gas_stations(lat, lng):
                 address = place.get('displayString', 'No address')
                 distance = place.get('distance', 0)
                 gas_result_text.insert(tk.END, f"- {name}\n", "poi_name")
-                gas_result_text.insert(tk.END, f"  Address: {address}\n", "poi_address")
                 gas_result_text.insert(tk.END, f"  Distance: {distance:.2f} km\n\n", "poi_distance")
         else:
             gas_result_text.delete(1.0, tk.END)
@@ -226,6 +225,52 @@ def on_find_gas_stations():
 
     if lat and lng:
         find_nearby_gas_stations(lat, lng)
+
+def find_nearby_hotels(lat, lng):
+    url = 'https://www.mapquestapi.com/search/v4/place'
+    params = {
+        'location': f'{lng},{lat}',
+        'q': 'hotel',
+        'sort': 'distance',
+        'feedback': 'false',
+        'circle': f'{lng},{lat},10000',
+        'key': MAPQUEST_API_KEY,
+        'pageSize': 10
+    }
+
+    response = requests.get(url, params=params)
+
+    if response.status_code == 200:
+        data = response.json()
+        results = data.get('results', [])
+        if results:
+            gas_result_text.delete(1.0, tk.END)
+            gas_result_text.insert(tk.END, "Nearby Hotels:\n\n", "header")
+            for place in results:
+                name = place.get('name', 'Unknown')
+                coords = place.get('place', {}).get('geometry', {}).get('coordinates', [])
+                address = place.get('displayString', 'No address')
+                distance = place.get('distance', 0)
+                gas_result_text.insert(tk.END, f"- {name}\n", "poi_name")
+                gas_result_text.insert(tk.END, f"  Address: {address}\n", "poi_address")
+        else:
+            gas_result_text.delete(1.0, tk.END)
+            gas_result_text.insert(tk.END, "No hotels found nearby.\n", "error")
+    else:
+        messagebox.showerror("Error", f"Failed to retrieve hotels: {response.status_code}")
+
+def on_find_hotels():
+    to_location = to_entry.get()
+
+    if not to_location:
+        messagebox.showwarning("Input Error", "Please enter a destination.")
+        return
+
+    lat, lng, location_name = geocode_location(to_location)
+
+    if lat and lng:
+        find_nearby_hotels(lat, lng)
+
 
 root = tk.Tk()
 root.title("Route Finder")
@@ -260,6 +305,9 @@ transport_mode_menu.grid(row=2, column=1, padx=10, pady=5, sticky="w")
 
 find_gas_button = tk.Button(top_frame, text="Find Gas Stations", command=on_find_gas_stations)
 find_gas_button.grid(row=2, column=2, padx=10, pady=5)
+
+find_hotels_button = tk.Button(top_frame, text="Find Hotels", command=on_find_hotels)
+find_hotels_button.grid(row=2, column=3, padx=10, pady=5)
 
 main_frame = tk.Frame(root)
 main_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
