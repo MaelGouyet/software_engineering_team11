@@ -207,7 +207,7 @@ def find_nearby_gas_stations(lat, lng):
                 address = place.get('displayString', 'No address')
                 distance = place.get('distance', 0)
                 gas_result_text.insert(tk.END, f"- {name}\n", "poi_name")
-                gas_result_text.insert(tk.END, f"  Address: {address}\n", "poi_address")
+                gas_result_text.insert(tk.END, f"  Distance: {distance:.2f} km\n\n", "poi_distance")
         else:
             gas_result_text.delete(1.0, tk.END)
             gas_result_text.insert(tk.END, "No gas stations found nearby.\n", "error")
@@ -225,7 +225,6 @@ def on_find_gas_stations():
 
     if lat and lng:
         find_nearby_gas_stations(lat, lng)
-
 
 def find_nearby_hotels(lat, lng):
     url = 'https://www.mapquestapi.com/search/v4/place'
