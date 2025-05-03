@@ -6,7 +6,7 @@ from tkinter import messagebox, scrolledtext
 from PIL import Image, ImageTk  # Install Pillow via pip: pip install pillow
 from io import BytesIO
 import urllib.parse
-from colorTheme import light_theme, dark_theme
+from colorTheme import white_theme, charcoal_theme, khaki_theme, light_blue_theme, pink_theme
 
 # Load environment variables from .env file
 load_dotenv()
@@ -164,7 +164,7 @@ def apply_theme(theme):
     to_entry.config(bg=theme["entry_bg"], fg=theme["entry_fg"], insertbackground=theme["entry_fg"])
 
     get_directions_button.config(bg=theme["button_bg"], fg=theme["button_fg"], activebackground=theme["button_bg"])
-    toggle_button.config(bg=theme["button_bg"], fg=theme["button_fg"], activebackground=theme["button_bg"])
+    theme_selector.config(bg=theme["button_bg"], fg=theme["button_fg"], activebackground=theme["button_bg"])
     find_gas_button.config(bg=theme["button_bg"], fg=theme["button_fg"], activebackground=theme["button_bg"])
     find_hotels_button.config(bg=theme["button_bg"], fg=theme["button_fg"], activebackground=theme["button_bg"])
     
@@ -177,13 +177,6 @@ def apply_theme(theme):
     
     arrow_color = "#FFFFFF" if is_dark_mode else "#000000"
     result_text.tag_configure("symbol", font=("Arial", 28, "bold"), foreground=arrow_color)
-
-
-def toggle_dark_mode():
-    global is_dark_mode
-    is_dark_mode = not is_dark_mode
-    theme = dark_theme if is_dark_mode else light_theme
-    apply_theme(theme)
 
 def find_nearby_gas_stations(lat, lng):
     url = 'https://www.mapquestapi.com/search/v4/place'
@@ -287,9 +280,6 @@ root.geometry(f"{screen_width}x{screen_height}")
 top_frame = tk.Frame(root)
 top_frame.pack(fill=tk.X, padx=10, pady=10)
 
-toggle_button = tk.Button(top_frame, text="Toggle Dark Mode", command=toggle_dark_mode)
-toggle_button.grid(row=0, column=0, padx=10, pady=5, sticky="w")
-
 tk.Label(top_frame, text="Starting Location:").grid(row=1, column=0, padx=10, pady=5, sticky="w")
 from_entry = tk.Entry(top_frame, width=40)
 from_entry.grid(row=1, column=1, padx=10, pady=5)
@@ -343,6 +333,18 @@ main_frame.columnconfigure(0, weight=1)
 main_frame.columnconfigure(1, weight=1)
 main_frame.rowconfigure(0, weight=1)
 
-apply_theme(light_theme)
+# Theme Selector
+theme_var = tk.StringVar(value="light")
+theme_selector = tk.OptionMenu(top_frame, theme_var, "white", "charcoal", "khaki", "light blue", "pink",
+    command=lambda theme: apply_theme({
+        "white": white_theme,
+        "charcoal": charcoal_theme,
+        "khaki": khaki_theme,
+        "light blue": light_blue_theme,
+        "pink": pink_theme
+    }.get(theme, white_theme)))
 
+theme_selector.grid(row=0, column=0, padx=10, pady=5, sticky="w")
+
+apply_theme(white_theme)
 root.mainloop()
