@@ -17,6 +17,15 @@ DIRECTIONS_URL = "http://www.mapquestapi.com/directions/v2/route"
 STATIC_MAP_URL = "https://www.mapquestapi.com/staticmap/v5/map"
 
 def geocode_location(location):
+    """
+    Geocode a location to get latitude, longitude, and a formatted address.
+    
+    Args:
+        location (str): The address or location name to be geocoded.
+    
+    Returns:
+        tuple: Latitude, Longitude, and the formatted address (or original location if error occurs).
+    """
     params = {
         "key": MAPQUEST_API_KEY,
         "location": location
@@ -25,14 +34,26 @@ def geocode_location(location):
     data = response.json()
 
     if response.status_code == 200 and data["info"]["statuscode"] == 0:
+        # Extract latitude, longitude, and formatted address
         latlng = data["results"][0]["locations"][0]["latLng"]
         display_name = data["results"][0]["locations"][0]["street"] + ", " + data["results"][0]["locations"][0]["adminArea5"] + ", " + data["results"][0]["locations"][0]["adminArea3"]
         return latlng["lat"], latlng["lng"], display_name
     else:
+        # Show error message if geocoding fails
         messagebox.showerror("Error", f"Error in geocoding: {data['info']['messages']}")
         return None, None, location
 
 def get_static_map(from_loc, to_loc):
+    """
+    Fetch a static map image between two locations using MapQuest API.
+    
+    Args:
+        from_loc (str): The starting location for the route.
+        to_loc (str): The destination location for the route.
+    
+    Returns:
+        PIL.Image: The static map image, or None if the request fails.
+    """
     response = requests.get(
         STATIC_MAP_URL + "?start=" + urllib.parse.quote(from_loc) +
         "&end=" + urllib.parse.quote(to_loc) +
@@ -41,10 +62,18 @@ def get_static_map(from_loc, to_loc):
     if response.status_code == 200:
         return Image.open(BytesIO(response.content))
     else:
+        # Show error message if map fails to load
         messagebox.showerror("Error", "Failed to load the map.")
         return None
 
 def get_directions(from_loc, to_loc):
+    """
+    Fetch directions between two locations using MapQuest API and display them.
+    
+    Args:
+        from_loc (str): The starting location.
+        to_loc (str): The destination location.
+    """
     params = {
         "key": MAPQUEST_API_KEY,
         "from": from_loc,
@@ -88,11 +117,13 @@ def get_directions(from_loc, to_loc):
             result_text.insert(tk.END, f"IRS reimbursement: ${data['route']['fuelUsed'] * 3.5:.2f}\n\n", "cost")
         
         arrow_color = "#FFFFFF" if is_dark_mode else "#000000"
-        
+
+        # Display each maneuver in the route
         for i, leg in enumerate(data["route"]["legs"][0]["maneuvers"]):
             direction = leg.get('directionName', '').lower()
             narrative = leg.get('narrative', '').lower()
-            
+
+             # Assign appropriate symbols for directions
             if "right" in narrative:
                 symbol = "➤"
             elif "left" in narrative:
@@ -123,7 +154,8 @@ def get_directions(from_loc, to_loc):
             
             if i < len(data["route"]["legs"][0]["maneuvers"]) - 1:
                 result_text.insert(tk.END, f"Then {leg['distance']:.1f} mi\n\n", "distance_segment")
-        
+
+        # Styling the tags used in the result text
         result_text.tag_configure("origin", font=("Arial", 14, "bold"), foreground="#2E7D32")
         result_text.tag_configure("to_text", font=("Arial", 12))
         result_text.tag_configure("destination", font=("Arial", 14, "bold"))
@@ -138,6 +170,9 @@ def get_directions(from_loc, to_loc):
         messagebox.showerror("Error", f"Error retrieving route: {data['info']['messages']}")
 
 def on_get_directions():
+    """
+    Triggered when the 'Get Directions' button is clicked. Geocodes the locations and fetches directions.
+    """
     from_location = from_entry.get()
     to_location = to_entry.get()
 
@@ -152,6 +187,12 @@ def on_get_directions():
         get_directions(from_location, to_location)
 
 def apply_theme(theme):
+    """
+    Applies the selected theme to the application UI.
+    
+    Args:
+        theme (dict): A dictionary containing the colors for the theme.
+    """
     root.config(bg=theme["bg"])
     top_frame.config(bg=theme["bg"])
     main_frame.config(bg=theme["bg"])
@@ -179,6 +220,17 @@ def apply_theme(theme):
     result_text.tag_configure("symbol", font=("Arial", 28, "bold"), foreground=arrow_color)
 
 def find_nearby_gas_stations(lat, lng):
+    """
+    Finds nearby gas stations using the MapQuest API and displays the results.
+
+    Parameters:
+    lat (float): Latitude of the current location.
+    lng (float): Longitude of the current location.
+
+    This function sends a request to the MapQuest API to search for gas stations
+    within a 10km radius of the specified location, and then displays the results
+    in a text widget.
+    """
     url = 'https://www.mapquestapi.com/search/v4/place'
     params = {
         'location': f'{lng},{lat}',
@@ -212,6 +264,12 @@ def find_nearby_gas_stations(lat, lng):
         messagebox.showerror("Error", f"Failed to retrieve gas stations: {response.status_code}")
 
 def on_find_gas_stations():
+    """
+    Handles the event when the user requests to find nearby gas stations.
+
+    This function retrieves the destination entered by the user, geocodes the location,
+    and calls the `find_nearby_gas_stations` function if the geocoding is successful.
+    """
     to_location = to_entry.get()
 
     if not to_location:
@@ -224,6 +282,17 @@ def on_find_gas_stations():
         find_nearby_gas_stations(lat, lng)
 
 def find_nearby_hotels(lat, lng):
+    """
+    Finds nearby hotels using the MapQuest API and displays the results.
+
+    Parameters:
+    lat (float): Latitude of the current location.
+    lng (float): Longitude of the current location.
+
+    This function sends a request to the MapQuest API to search for hotels
+    within a 10km radius of the specified location, and then displays the results
+    in a text widget.
+    """
     url = 'https://www.mapquestapi.com/search/v4/place'
     params = {
         'location': f'{lng},{lat}',
@@ -257,6 +326,12 @@ def find_nearby_hotels(lat, lng):
         messagebox.showerror("Error", f"Failed to retrieve hotels: {response.status_code}")
 
 def on_find_hotels():
+    """
+    Handles the event when the user requests to find nearby hotels.
+
+    This function retrieves the destination entered by the user, geocodes the location,
+    and calls the `find_nearby_hotels` function if the geocoding is successful.
+    """
     to_location = to_entry.get()
 
     if not to_location:
@@ -267,7 +342,6 @@ def on_find_hotels():
 
     if lat and lng:
         find_nearby_hotels(lat, lng)
-
 
 root = tk.Tk()
 root.title("Route Finder")
