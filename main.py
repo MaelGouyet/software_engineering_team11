@@ -159,21 +159,25 @@ def apply_theme(theme):
     for widget in top_frame.winfo_children():
         if isinstance(widget, tk.Label):
             widget.config(bg=theme["bg"], fg=theme["fg"])
-
+    
     from_entry.config(bg=theme["entry_bg"], fg=theme["entry_fg"], insertbackground=theme["entry_fg"])
     to_entry.config(bg=theme["entry_bg"], fg=theme["entry_fg"], insertbackground=theme["entry_fg"])
 
-    get_directions_button.config(bg=theme["button_bg"], fg=theme["button_fg"])
-    toggle_button.config(bg=theme["button_bg"], fg=theme["button_fg"])
-
-    transport_mode_menu.config(bg=theme["button_bg"], fg=theme["button_fg"])
-
+    get_directions_button.config(bg=theme["button_bg"], fg=theme["button_fg"], activebackground=theme["button_bg"])
+    toggle_button.config(bg=theme["button_bg"], fg=theme["button_fg"], activebackground=theme["button_bg"])
+    find_gas_button.config(bg=theme["button_bg"], fg=theme["button_fg"], activebackground=theme["button_bg"])
+    find_hotels_button.config(bg=theme["button_bg"], fg=theme["button_fg"], activebackground=theme["button_bg"])
+    
+    transport_mode_menu.config(bg=theme["button_bg"], fg=theme["button_fg"], highlightbackground=theme["button_bg"])
+    
     map_label.config(bg=theme["bg"])
 
     result_text.config(bg=theme["text_bg"], fg=theme["text_fg"], insertbackground=theme["text_fg"])
+    gas_result_text.config(bg=theme["text_bg"], fg=theme["text_fg"], insertbackground=theme["text_fg"])
     
     arrow_color = "#FFFFFF" if is_dark_mode else "#000000"
     result_text.tag_configure("symbol", font=("Arial", 28, "bold"), foreground=arrow_color)
+
 
 def toggle_dark_mode():
     global is_dark_mode
